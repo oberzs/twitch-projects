@@ -1,0 +1,13 @@
+[package]
+name = "box-pusher"
+version = "0.1.0"
+authors = ["Oliver Berzs <oliver.berzs@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+duku = { version = "0.2.1", features = ["png"] }
+specs = { version = "0.16.1", default-features = false }
+gilrs = "0.8.0"
+specs-derive = "0.4.1"
+serde = "1.0.118"
+serde_json = "1.0.60"
