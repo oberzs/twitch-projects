@@ -1,29 +1,13 @@
 use duku::Vec2;
 use serde_json::Map;
 use serde_json::Value;
-use specs::Builder;
-use specs::World;
-use specs::WorldExt;
 use std::fs;
 use std::path::Path;
 
-use crate::components::Animation;
-use crate::components::Animations;
-use crate::components::Movable;
-use crate::components::Player;
-use crate::components::Position;
-use crate::components::Pushable;
-use crate::components::Solid;
-use crate::components::Sprite;
 use crate::error::Result;
-use crate::sprites::Sprites;
+use crate::world::World;
 
-pub fn load(
-    world: &mut World,
-    sprites: &Sprites,
-    path: impl AsRef<Path>,
-    level_name: impl AsRef<str>,
-) -> Result<()> {
+pub fn load(world: &mut World, path: impl AsRef<Path>, level_name: impl AsRef<str>) -> Result<()> {
     let l_name = level_name.as_ref();
     let bytes = fs::read(path)?;
     let json: Value = serde_json::from_slice(&bytes)?;
@@ -54,7 +38,7 @@ pub fn load(
     let level_height = as_i32(&level["pxHei"])?;
 
     // iterate over layers
-    for (i, layer_val) in layers.iter().enumerate() {
+    for layer_val in layers {
         let layer = as_map(layer_val)?;
         let layer_type = as_str(&layer["__type"])?;
 
@@ -66,6 +50,7 @@ pub fn load(
 
                 for instance_val in instances {
                     let instance = as_map(instance_val)?;
+                    let identifier = as_str(&instance["__identifier"])?;
 
                     // get position
                     let xy = as_vec(&instance["px"])?;
@@ -73,102 +58,17 @@ pub fn load(
                     let y = level_height - as_i32(xy.get(1).ok_or("no y")?)?;
                     let pos = Vec2::new(x as f32, y as f32);
 
-                    // create entity
-                    let mut builder = world.create_entity().with(Position {
-                        layer: i as f32,
-                        pos,
-                    });
-
-                    // get fields
-                    let fields = as_vec(&instance["fieldInstances"])?;
-
-                    // add sprite
-                    if let Some(sprite) = get_field(&fields, "sprite")? {
-                        let name = as_str(sprite)?;
-                        let texture = sprites.get(name).expect("bad sprite");
-                        let width = texture.read().width();
-                        let height = texture.read().height();
-                        builder = builder.with(Sprite {
-                            texture,
-                            part_pos: Vec2::new(0.0, 0.0),
-                            part_size: Vec2::new(width as f32, height as f32),
-                        });
+                    // spawn entity
+                    match identifier {
+                        "Player" => world.spawn_player(pos),
+                        "Box" => world.spawn_box(pos),
+                        _ => {}
                     }
-
-                    // add animation
-                    if let Some(anim) = get_field(&fields, "animations")? {
-                        let string = as_str(anim)?;
-                        let mut props = string.split("::");
-
-                        // get size
-                        let mut size_iter = props.next().expect("bad animation size").split(',');
-                        let columns = size_iter
-                            .next()
-                            .expect("bad animation")
-                            .trim()
-                            .parse::<u32>()
-                            .expect("bad animation");
-                        let rows = size_iter
-                            .next()
-                            .expect("bad animation")
-                            .trim()
-                            .parse::<u32>()
-                            .expect("bad animation");
-
-                        // get animations
-                        let mut animations = vec![];
-                        for anim_str in props {
-                            let mut parts = anim_str.split(',');
-                            let duration = parts
-                                .next()
-                                .expect("bad animation")
-                                .trim()
-                                .parse::<u32>()
-                                .expect("bad number");
-                            let frames: Vec<_> = parts
-                                .map(|p| p.trim().parse::<usize>().expect("bad number"))
-                                .collect();
-
-                            animations.push(Animation { duration, frames });
-                        }
-
-                        builder = builder.with(Animations {
-                            size: Vec2::new(columns as f32, rows as f32),
-                            current_animation: 0,
-                            time: 0.0,
-                            animations,
-                        })
-                    }
-
-                    // set markers
-                    if let Some(mark) = get_field(&fields, "markers")? {
-                        let markers: Vec<_> = as_str(mark)?.split(',').map(|m| m.trim()).collect();
-
-                        // add movable
-                        if markers.contains(&"movable") {
-                            builder = builder.with(Movable {
-                                target: pos,
-                                speed: 2,
-                            });
-                        }
-
-                        // add player
-                        if markers.contains(&"player") {
-                            builder = builder.with(Player);
-                        }
-
-                        // add pushable
-                        if markers.contains(&"pushable") {
-                            builder = builder.with(Pushable);
-                        }
-                    }
-
-                    builder.build();
                 }
             }
             "Tiles" => {
                 // get identifier
-                let id = as_str(&layer["__identifier"])?;
+                let identifier = as_str(&layer["__identifier"])?;
 
                 // get texture name
                 let tex_name = as_str(&layer["__tilesetRelPath"])?;
@@ -182,9 +82,6 @@ pub fn load(
                 for tile_val in tiles {
                     let tile = as_map(tile_val)?;
 
-                    // get texture
-                    let texture = sprites.get(tex_name).ok_or("texture not found")?.clone();
-
                     // get coordinates
                     let xy = as_vec(&tile["px"])?;
                     let uv = as_vec(&tile["src"])?;
@@ -192,27 +89,16 @@ pub fn load(
                     let y = level_height - as_i32(xy.get(1).ok_or("no y")?)?;
                     let u = as_i32(uv.get(0).ok_or("no u")?)?;
                     let v = as_i32(uv.get(1).ok_or("no v")?)?;
+
                     let pos = Vec2::new(x as f32, y as f32);
+                    let part_pos = Vec2::new(u as f32, v as f32);
+                    let part_size = Vec2::new(grid_size as f32, grid_size as f32);
 
-                    // create tile entity
-                    let mut builder = world
-                        .create_entity()
-                        .with(Sprite {
-                            texture,
-                            part_pos: Vec2::new(u as f32, v as f32),
-                            part_size: Vec2::new(grid_size as f32, grid_size as f32),
-                        })
-                        .with(Position {
-                            pos,
-                            layer: i as f32,
-                        });
-
-                    // add solid
-                    if id == "Collisions" {
-                        builder = builder.with(Solid);
+                    match identifier {
+                        "Collisions" => world.spawn_wall(tex_name, pos, part_pos, part_size),
+                        "Background" => world.spawn_floor(tex_name, pos, part_pos, part_size),
+                        _ => {}
                     }
-
-                    builder.build();
                 }
             }
             _ => return Err("invalid layer type".into()),
@@ -220,19 +106,6 @@ pub fn load(
     }
 
     Ok(())
-}
-
-fn get_field<'a>(fields: &'a [Value], name: &str) -> Result<Option<&'a Value>> {
-    for field in fields {
-        let map = as_map(field)?;
-        let id = as_str(&map["__identifier"])?;
-        if id == name {
-            let value = &map["__value"];
-            return Ok(Some(value));
-        }
-    }
-
-    Ok(None)
 }
 
 fn as_i32(value: &Value) -> Result<i32> {

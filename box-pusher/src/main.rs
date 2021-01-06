@@ -1,30 +1,23 @@
+mod macros;
+
 mod components;
 mod error;
 mod level;
-mod sprites;
 mod systems;
+mod world;
 
 use duku::Camera;
 use duku::Duku;
 use gilrs::Event;
 use gilrs::Gilrs;
-use specs::World;
-use specs::WorldExt;
 
-use components::Animations;
-use components::Movable;
-use components::Player;
-use components::Position;
-use components::Pushable;
-use components::Solid;
-use components::Sprite;
 use error::Result;
-use sprites::Sprites;
 use systems::animate_system;
 use systems::collision_system;
 use systems::draw_system;
 use systems::movable_system;
 use systems::player_move_system;
+use world::World;
 
 fn main() -> Result<()> {
     let tile_size = 16;
@@ -40,25 +33,16 @@ fn main() -> Result<()> {
 
     let camera = Camera::orthographic_sized(view_w as f32, view_h as f32);
 
-    // load sprites
-    let mut sprites = Sprites::default();
-    sprites.add(&mut duku, "assets/player.png")?;
-    sprites.add(&mut duku, "assets/floor.png")?;
-    sprites.add(&mut duku, "assets/wall.png")?;
-    sprites.add(&mut duku, "assets/box.png")?;
+    let mut world = World::new()?;
 
-    // setup ECS
-    let mut world = World::new();
-    world.register::<Sprite>();
-    world.register::<Position>();
-    world.register::<Player>();
-    world.register::<Solid>();
-    world.register::<Movable>();
-    world.register::<Animations>();
-    world.register::<Pushable>();
+    // load sprites
+    world.add_sprite(&mut duku, "assets/player.png")?;
+    world.add_sprite(&mut duku, "assets/floor.png")?;
+    world.add_sprite(&mut duku, "assets/wall.png")?;
+    world.add_sprite(&mut duku, "assets/box.png")?;
 
     // load level
-    level::load(&mut world, &sprites, "assets/world.ldtk", "Test")?;
+    level::load(&mut world, "assets/world.ldtk", "Test")?;
 
     window.while_open(move |events| {
         // check for new gamepad events

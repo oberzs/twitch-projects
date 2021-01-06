@@ -6,34 +6,38 @@ use duku::Target;
 use duku::Vec2;
 use gilrs::Button;
 use gilrs::Gamepad;
-use specs::world::EntitiesRes;
 use specs::Component;
 use specs::Entity;
 use specs::Join;
-use specs::World;
-use specs::WorldExt;
 
 use crate::components::Animations;
+use crate::components::EntityLayer;
+use crate::components::FloorLayer;
 use crate::components::Movable;
 use crate::components::Player;
 use crate::components::Position;
 use crate::components::Pushable;
 use crate::components::Solid;
 use crate::components::Sprite;
+use crate::components::TileLayer;
+use crate::world::World;
 
 pub fn draw_system(world: &World, t: &mut Target, view_w: u32, view_h: u32) {
-    let positions = world.read_storage::<Position>();
-    let sprites = world.read_storage::<Sprite>();
+    let positions = world.read::<Position>();
+    let sprites = world.read::<Sprite>();
+    let floors = world.read::<FloorLayer>();
+    let tiles = world.read::<TileLayer>();
+    let entities = world.read::<EntityLayer>();
 
     t.filter(Filter::Nearest);
     t.shape_mode(ShapeMode::TopLeft);
     t.translate_y(view_h as f32 / -2.0);
     t.translate_x(view_w as f32 / -2.0);
 
-    // render sprites with positions
-    for (pos, sprite) in (&positions, &sprites).join() {
+    // render floors
+    for (pos, sprite, _) in (&positions, &sprites, &floors).join() {
         t.push();
-        t.translate_z(pos.layer);
+        t.translate_z(2.0);
         t.texture_part(
             &sprite.texture,
             pos.pos,
@@ -43,15 +47,43 @@ pub fn draw_system(world: &World, t: &mut Target, view_w: u32, view_h: u32) {
         );
         t.pop();
     }
+
+    // render tiles
+    for (pos, sprite, _) in (&positions, &sprites, &tiles).join() {
+        t.push();
+        t.translate_z(1.0);
+        t.texture_part(
+            &sprite.texture,
+            pos.pos,
+            sprite.part_size,
+            sprite.part_pos,
+            sprite.part_size,
+        );
+        t.pop();
+    }
+
+    // render entities
+    for (pos, sprite, _) in (&positions, &sprites, &entities).join() {
+        t.texture_part(
+            &sprite.texture,
+            pos.pos,
+            sprite.part_size,
+            sprite.part_pos,
+            sprite.part_size,
+        );
+    }
 }
 
 pub fn animate_system(world: &World, dt: f32) {
-    let mut sprites = world.write_storage::<Sprite>();
-    let mut animations = world.write_storage::<Animations>();
+    let mut sprites = world.write::<Sprite>();
+    let mut animations = world.write::<Animations>();
 
     for (spr, anis) in (&mut sprites, &mut animations).join() {
         // get current animation
-        let ani = &anis.animations[anis.current_animation];
+        let ani = &anis
+            .animations
+            .get(&anis.current_animation)
+            .expect("bad animation");
 
         // validate animation duration
         if ani.duration != 0 {
@@ -73,8 +105,8 @@ pub fn animate_system(world: &World, dt: f32) {
 }
 
 pub fn movable_system(world: &World) {
-    let mut positions = world.write_storage::<Position>();
-    let movables = world.read_storage::<Movable>();
+    let mut positions = world.write::<Position>();
+    let movables = world.read::<Movable>();
 
     for (pos, mov) in (&mut positions, &movables).join() {
         // check if player is moving
@@ -89,9 +121,9 @@ pub fn movable_system(world: &World) {
 }
 
 pub fn collision_system(world: &World) {
-    let positions = world.read_storage::<Position>();
-    let solids = world.read_storage::<Solid>();
-    let mut movables = world.write_storage::<Movable>();
+    let positions = world.read::<Position>();
+    let solids = world.read::<Solid>();
+    let mut movables = world.write::<Movable>();
 
     for (pos, mov) in (&positions, &mut movables).join() {
         // check solids
@@ -109,10 +141,10 @@ pub fn player_move_system(
     gamepad: &Option<Gamepad>,
     tile_size: u32,
 ) {
-    let players = world.read_storage::<Player>();
-    let positions = world.read_storage::<Position>();
-    let mut movables = world.write_storage::<Movable>();
-    let mut animations = world.write_storage::<Animations>();
+    let players = world.read::<Player>();
+    let positions = world.read::<Position>();
+    let mut movables = world.write::<Movable>();
+    let mut animations = world.write::<Animations>();
 
     let mut pushable = None;
     let mut push_dir = Vec2::new(0.0, 0.0);
@@ -126,16 +158,16 @@ pub fn player_move_system(
             // and change animation
             if events.is_key_pressed(Key::W) || gamepad_pressed(gamepad, Button::DPadUp) {
                 mov.target.y += tile_size as f32;
-                ani.current_animation = 1;
+                ani.current_animation = "idle-up".to_string();
             } else if events.is_key_pressed(Key::S) || gamepad_pressed(gamepad, Button::DPadDown) {
                 mov.target.y -= tile_size as f32;
-                ani.current_animation = 0;
+                ani.current_animation = "idle-down".to_string();
             } else if events.is_key_pressed(Key::A) || gamepad_pressed(gamepad, Button::DPadLeft) {
                 mov.target.x -= tile_size as f32;
-                ani.current_animation = 2;
+                ani.current_animation = "idle-left".to_string();
             } else if events.is_key_pressed(Key::D) || gamepad_pressed(gamepad, Button::DPadRight) {
                 mov.target.x += tile_size as f32;
-                ani.current_animation = 3;
+                ani.current_animation = "idle-right".to_string();
             }
 
             // get move direction and check for pushables
@@ -161,9 +193,9 @@ pub fn player_move_system(
 }
 
 fn check_position<T: Component>(world: &World, pos: Vec2) -> Option<Entity> {
-    let positions = world.read_storage::<Position>();
-    let components = world.read_storage::<T>();
-    let entities = world.fetch::<EntitiesRes>();
+    let positions = world.read::<Position>();
+    let components = world.read::<T>();
+    let entities = world.entities();
 
     // loop through objects with component
     for (e, comp, _) in (&entities, &positions, &components).join() {

@@ -89,48 +89,7 @@
 				"limitBehavior": "DiscardOldOnes",
 				"pivotX": 0,
 				"pivotY": 0,
-				"fieldDefs": [
-					{
-						"identifier": "sprite",
-						"__type": "String",
-						"uid": 13,
-						"type": "F_String",
-						"isArray": false,
-						"canBeNull": false,
-						"arrayMinLength": null,
-						"arrayMaxLength": null,
-						"editorDisplayMode": "Hidden",
-						"editorDisplayPos": "Above",
-						"editorAlwaysShow": false,
-						"min": null,
-						"max": null,
-						"acceptFileTypes": null,
-						"defaultOverride": {
-							"id": "V_String",
-							"params": ["box.png"]
-						}
-					},
-					{
-						"identifier": "markers",
-						"__type": "String",
-						"uid": 18,
-						"type": "F_String",
-						"isArray": false,
-						"canBeNull": true,
-						"arrayMinLength": null,
-						"arrayMaxLength": null,
-						"editorDisplayMode": "Hidden",
-						"editorDisplayPos": "Above",
-						"editorAlwaysShow": false,
-						"min": null,
-						"max": null,
-						"acceptFileTypes": null,
-						"defaultOverride": {
-							"id": "V_String",
-							"params": ["movable, pushable"]
-						}
-					}
-				]
+				"fieldDefs": []
 			},
 			{
 				"identifier": "Player",
@@ -147,68 +106,7 @@
 				"limitBehavior": "DiscardOldOnes",
 				"pivotX": 0,
 				"pivotY": 0,
-				"fieldDefs": [
-					{
-						"identifier": "sprite",
-						"__type": "String",
-						"uid": 12,
-						"type": "F_String",
-						"isArray": false,
-						"canBeNull": false,
-						"arrayMinLength": null,
-						"arrayMaxLength": null,
-						"editorDisplayMode": "Hidden",
-						"editorDisplayPos": "Above",
-						"editorAlwaysShow": false,
-						"min": null,
-						"max": null,
-						"acceptFileTypes": null,
-						"defaultOverride": {
-							"id": "V_String",
-							"params": ["player.png"]
-						}
-					},
-					{
-						"identifier": "animations",
-						"__type": "String",
-						"uid": 17,
-						"type": "F_String",
-						"isArray": false,
-						"canBeNull": false,
-						"arrayMinLength": null,
-						"arrayMaxLength": null,
-						"editorDisplayMode": "Hidden",
-						"editorDisplayPos": "Above",
-						"editorAlwaysShow": false,
-						"min": null,
-						"max": null,
-						"acceptFileTypes": null,
-						"defaultOverride": {
-							"id": "V_String",
-							"params": ["4,4 :: 500,0,1 :: 500,2,3 :: 500,4,5 :: 500,6,7"]
-						}
-					},
-					{
-						"identifier": "markers",
-						"__type": "String",
-						"uid": 19,
-						"type": "F_String",
-						"isArray": false,
-						"canBeNull": true,
-						"arrayMinLength": null,
-						"arrayMaxLength": null,
-						"editorDisplayMode": "Hidden",
-						"editorDisplayPos": "Above",
-						"editorAlwaysShow": false,
-						"min": null,
-						"max": null,
-						"acceptFileTypes": null,
-						"defaultOverride": {
-							"id": "V_String",
-							"params": ["player, movable"]
-						}
-					}
-				]
+				"fieldDefs": []
 			}
 		],
 		"tilesets": [
@@ -274,19 +172,9 @@
 					"seed": 2833366,
 					"gridTiles": [],
 					"entityInstances": [
-						{ "__identifier": "Box", "__grid": [8,3], "__tile": null, "defUid": 8, "px": [128,48], "fieldInstances": [
-							{ "__identifier": "sprite", "__value": "box.png", "__type": "String", "defUid": 13, "realEditorValues": [] },
-							{ "__identifier": "markers", "__value": "movable, pushable", "__type": "String", "defUid": 18, "realEditorValues": [] }
-						] },
-						{ "__identifier": "Box", "__grid": [6,3], "__tile": null, "defUid": 8, "px": [96,48], "fieldInstances": [
-							{ "__identifier": "sprite", "__value": "box.png", "__type": "String", "defUid": 13, "realEditorValues": [] },
-							{ "__identifier": "markers", "__value": "movable, pushable", "__type": "String", "defUid": 18, "realEditorValues": [] }
-						] },
-						{ "__identifier": "Player", "__grid": [5,4], "__tile": null, "defUid": 9, "px": [80,64], "fieldInstances": [
-							{ "__identifier": "sprite", "__value": "player.png", "__type": "String", "defUid": 12, "realEditorValues": [] },
-							{ "__identifier": "animations", "__value": "4,4 :: 500,0,1 :: 500,2,3 :: 500,4,5 :: 500,6,7", "__type": "String", "defUid": 17, "realEditorValues": [] },
-							{ "__identifier": "markers", "__value": "player, movable", "__type": "String", "defUid": 19, "realEditorValues": [] }
-						] }
+						{ "__identifier": "Box", "__grid": [8,3], "__tile": null, "defUid": 8, "px": [128,48], "fieldInstances": [] },
+						{ "__identifier": "Box", "__grid": [6,3], "__tile": null, "defUid": 8, "px": [96,48], "fieldInstances": [] },
+						{ "__identifier": "Player", "__grid": [5,4], "__tile": null, "defUid": 9, "px": [80,64], "fieldInstances": [] }
 					]
 				},
 				{
