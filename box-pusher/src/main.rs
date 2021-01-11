@@ -16,6 +16,7 @@ use systems::animate_system;
 use systems::collision_system;
 use systems::draw_system;
 use systems::movable_system;
+use systems::player_animate_system;
 use systems::player_move_system;
 use world::World;
 
@@ -53,8 +54,8 @@ fn main() -> Result<()> {
 
         collision_system(&world);
         movable_system(&world);
-        // player_push_system(&world, tile_size);
         player_move_system(&world, events, &gamepad, tile_size);
+        player_animate_system(&world);
         animate_system(&world, duku.delta_time());
 
         duku.draw(Some(&camera), |t| {

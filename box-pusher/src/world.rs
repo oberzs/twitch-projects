@@ -85,6 +85,7 @@ impl World {
                 part_size,
             })
             .with(TileLayer)
+            .with(Solid)
             .build();
     }
 
@@ -119,6 +120,7 @@ impl World {
                 part_size: Vec2::new(16.0, 16.0),
             })
             .with(Pushable)
+            .with(EntityLayer)
             .build();
     }
 
@@ -138,7 +140,7 @@ impl World {
                 part_size: Vec2::new(0.0, 0.0),
             })
             .with(Animations {
-                size: Vec2::new(4.0, 4.0),
+                size: Vec2::new(6.0, 6.0),
                 time: 0.0,
                 current_animation: "idle-down".to_string(),
                 animations: map! (
@@ -150,13 +152,33 @@ impl World {
                         duration: 500,
                         frames: vec![2, 3]
                     },
-                    "idle-left" => Animation {
+                    "idle-right" => Animation {
                         duration: 500,
                         frames: vec![4, 5]
                     },
-                    "idle-right" => Animation {
+                    "idle-left" => Animation {
                         duration: 500,
                         frames: vec![6, 7]
+                    },
+                    "walk-down" => Animation {
+                        duration: 250,
+                        frames: vec![8, 9, 10, 11],
+                    },
+                    "walk-up" => Animation {
+                        duration: 250,
+                        frames: vec![12, 13, 14, 15]
+                    },
+                    "walk-right" => Animation {
+                        duration: 250,
+                        frames: vec![16, 17, 18, 19]
+                    },
+                    "walk-left" => Animation {
+                        duration: 250,
+                        frames: vec![20, 21, 22, 23]
+                    },
+                    "special" => Animation {
+                        duration: 500,
+                        frames: vec![24, 25, 26, 27, 28, 29]
                     }
                 ),
             })

@@ -118,21 +118,21 @@ fn as_i32(value: &Value) -> Result<i32> {
     }
 }
 
-fn as_str<'a>(value: &'a Value) -> Result<&'a str> {
+fn as_str(value: &Value) -> Result<&str> {
     match value {
         Value::String(s) => Ok(s),
         _ => Err("invalid str".into()),
     }
 }
 
-fn as_vec<'a>(value: &'a Value) -> Result<&'a [Value]> {
+fn as_vec(value: &Value) -> Result<&[Value]> {
     match value {
         Value::Array(vec) => Ok(vec),
         _ => Err("invalid vec".into()),
     }
 }
 
-fn as_map<'a>(value: &'a Value) -> Result<&'a Map<String, Value>> {
+fn as_map(value: &Value) -> Result<&Map<String, Value>> {
     match value {
         Value::Object(map) => Ok(map),
         _ => Err("invalid map".into()),

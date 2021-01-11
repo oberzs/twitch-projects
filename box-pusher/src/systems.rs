@@ -135,6 +135,41 @@ pub fn collision_system(world: &World) {
     }
 }
 
+pub fn player_animate_system(world: &World) {
+    let players = world.read::<Player>();
+    let positions = world.read::<Position>();
+    let movables = world.read::<Movable>();
+    let mut animations = world.write::<Animations>();
+
+    for (pos, mov, ani, _) in (&positions, &movables, &mut animations, &players).join() {
+        let dir = (mov.target - pos.pos).unit();
+
+        let prev_animation = ani.current_animation.clone();
+
+        if dir.x > 0.0 {
+            ani.current_animation = "walk-right".to_string();
+        } else if dir.x < 0.0 {
+            ani.current_animation = "walk-left".to_string();
+        } else if dir.y > 0.0 {
+            ani.current_animation = "walk-up".to_string();
+        } else if dir.y < 0.0 {
+            ani.current_animation = "walk-down".to_string();
+        } else {
+            // check previous direction
+            let prev = ani
+                .current_animation
+                .split('-')
+                .nth(1)
+                .expect("bad animation");
+            ani.current_animation = format!("idle-{}", prev);
+        }
+
+        if prev_animation != ani.current_animation {
+            ani.time = 0.0;
+        }
+    }
+}
+
 pub fn player_move_system(
     world: &World,
     events: &Events,
@@ -144,12 +179,11 @@ pub fn player_move_system(
     let players = world.read::<Player>();
     let positions = world.read::<Position>();
     let mut movables = world.write::<Movable>();
-    let mut animations = world.write::<Animations>();
 
     let mut pushable = None;
     let mut push_dir = Vec2::new(0.0, 0.0);
 
-    for (pos, mov, ani, _) in (&positions, &mut movables, &mut animations, &players).join() {
+    for (pos, mov, _) in (&positions, &mut movables, &players).join() {
         // check if player is moving
         let is_moving = pos.pos != mov.target;
 
@@ -158,16 +192,12 @@ pub fn player_move_system(
             // and change animation
             if events.is_key_pressed(Key::W) || gamepad_pressed(gamepad, Button::DPadUp) {
                 mov.target.y += tile_size as f32;
-                ani.current_animation = "idle-up".to_string();
             } else if events.is_key_pressed(Key::S) || gamepad_pressed(gamepad, Button::DPadDown) {
                 mov.target.y -= tile_size as f32;
-                ani.current_animation = "idle-down".to_string();
             } else if events.is_key_pressed(Key::A) || gamepad_pressed(gamepad, Button::DPadLeft) {
                 mov.target.x -= tile_size as f32;
-                ani.current_animation = "idle-left".to_string();
             } else if events.is_key_pressed(Key::D) || gamepad_pressed(gamepad, Button::DPadRight) {
                 mov.target.x += tile_size as f32;
-                ani.current_animation = "idle-right".to_string();
             }
 
             // get move direction and check for pushables
