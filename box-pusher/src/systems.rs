@@ -109,20 +109,18 @@ pub fn movable_system(world: &World) {
     let movables = world.read::<Movable>();
 
     for (pos, mov) in (&mut positions, &movables).join() {
-        // check if player is moving
-        let is_moving = pos.pos != mov.target;
-
-        if is_moving {
+        // check if movable is moving
+        if pos.pos != mov.target {
             // move player to target position
             let dir = (mov.target - pos.pos).unit();
-            pos.pos += dir * 1.0;
+            pos.pos += dir * mov.speed;
         }
     }
 }
 
 pub fn collision_system(world: &World) {
-    let positions = world.read::<Position>();
     let solids = world.read::<Solid>();
+    let positions = world.read::<Position>();
     let mut movables = world.write::<Movable>();
 
     for (pos, mov) in (&positions, &mut movables).join() {
@@ -142,26 +140,24 @@ pub fn player_animate_system(world: &World) {
     let mut animations = world.write::<Animations>();
 
     for (pos, mov, ani, _) in (&positions, &movables, &mut animations, &players).join() {
-        let dir = (mov.target - pos.pos).unit();
-
         let prev_animation = ani.current_animation.clone();
 
-        if dir.x > 0.0 {
-            ani.current_animation = "walk-right".to_string();
-        } else if dir.x < 0.0 {
-            ani.current_animation = "walk-left".to_string();
-        } else if dir.y > 0.0 {
-            ani.current_animation = "walk-up".to_string();
-        } else if dir.y < 0.0 {
-            ani.current_animation = "walk-down".to_string();
+        if mov.target != pos.pos {
+            ani.current_animation = match mov.direction {
+                Vec2 { x, .. } if x as i32 == 1 => "walk-right".to_string(),
+                Vec2 { x, .. } if x as i32 == -1 => "walk-left".to_string(),
+                Vec2 { y, .. } if y as i32 == 1 => "walk-up".to_string(),
+                Vec2 { y, .. } if y as i32 == -1 => "walk-down".to_string(),
+                _ => unreachable!(),
+            };
         } else {
-            // check previous direction
-            let prev = ani
-                .current_animation
-                .split('-')
-                .nth(1)
-                .expect("bad animation");
-            ani.current_animation = format!("idle-{}", prev);
+            ani.current_animation = match mov.direction {
+                Vec2 { x, .. } if x as i32 == 1 => "idle-right".to_string(),
+                Vec2 { x, .. } if x as i32 == -1 => "idle-left".to_string(),
+                Vec2 { y, .. } if y as i32 == 1 => "idle-up".to_string(),
+                Vec2 { y, .. } if y as i32 == -1 => "idle-down".to_string(),
+                _ => unreachable!(),
+            };
         }
 
         if prev_animation != ani.current_animation {
@@ -184,25 +180,34 @@ pub fn player_move_system(
     let mut push_dir = Vec2::new(0.0, 0.0);
 
     for (pos, mov, _) in (&positions, &mut movables, &players).join() {
-        // check if player is moving
-        let is_moving = pos.pos != mov.target;
+        if pos.pos == mov.target {
+            // reset player movement speed
+            mov.speed = 1.0;
 
-        if !is_moving {
             // move target if player pressed key
             // and change animation
             if events.is_key_pressed(Key::W) || gamepad_pressed(gamepad, Button::DPadUp) {
                 mov.target.y += tile_size as f32;
+                mov.direction = Vec2::up();
             } else if events.is_key_pressed(Key::S) || gamepad_pressed(gamepad, Button::DPadDown) {
                 mov.target.y -= tile_size as f32;
+                mov.direction = Vec2::down();
             } else if events.is_key_pressed(Key::A) || gamepad_pressed(gamepad, Button::DPadLeft) {
                 mov.target.x -= tile_size as f32;
+                mov.direction = Vec2::left();
             } else if events.is_key_pressed(Key::D) || gamepad_pressed(gamepad, Button::DPadRight) {
                 mov.target.x += tile_size as f32;
+                mov.direction = Vec2::right();
             }
 
             // get move direction and check for pushables
             push_dir = mov.target - pos.pos;
             pushable = check_position::<Pushable>(world, mov.target);
+
+            // change state to push if pushable ahead
+            if pushable.is_some() {
+                mov.speed = 0.5;
+            }
 
             // check the next tile to cancel movement
             if pushable.is_some()

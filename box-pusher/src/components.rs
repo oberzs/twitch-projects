@@ -34,17 +34,18 @@ pub struct Position {
 #[derive(Component)]
 pub struct Movable {
     pub target: Vec2,
+    pub direction: Vec2,
     pub speed: f32,
 }
+
+#[derive(Component)]
+pub struct Player;
 
 #[derive(Component)]
 pub struct Solid;
 
 #[derive(Component)]
 pub struct Pushable;
-
-#[derive(Component)]
-pub struct Player;
 
 #[derive(Component)]
 pub struct FloorLayer;

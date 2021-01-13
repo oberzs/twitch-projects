@@ -52,9 +52,9 @@ fn main() -> Result<()> {
         }
         let gamepad = gamepad_id.map(|g| gilrs.gamepad(g));
 
-        collision_system(&world);
         movable_system(&world);
         player_move_system(&world, events, &gamepad, tile_size);
+        collision_system(&world);
         player_animate_system(&world);
         animate_system(&world, duku.delta_time());
 

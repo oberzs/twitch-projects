@@ -112,7 +112,8 @@ impl World {
             .with(Position { pos })
             .with(Movable {
                 target: pos,
-                speed: 2.0,
+                direction: Vec2::down(),
+                speed: 0.5,
             })
             .with(Sprite {
                 texture,
@@ -132,7 +133,8 @@ impl World {
             .with(Position { pos })
             .with(Movable {
                 target: pos,
-                speed: 2.0,
+                direction: Vec2::down(),
+                speed: 1.0,
             })
             .with(Sprite {
                 texture,
@@ -161,19 +163,19 @@ impl World {
                         frames: vec![6, 7]
                     },
                     "walk-down" => Animation {
-                        duration: 250,
+                        duration: 150,
                         frames: vec![8, 9, 10, 11],
                     },
                     "walk-up" => Animation {
-                        duration: 250,
+                        duration: 150,
                         frames: vec![12, 13, 14, 15]
                     },
                     "walk-right" => Animation {
-                        duration: 250,
+                        duration: 150,
                         frames: vec![16, 17, 18, 19]
                     },
                     "walk-left" => Animation {
-                        duration: 250,
+                        duration: 150,
                         frames: vec![20, 21, 22, 23]
                     },
                     "special" => Animation {
