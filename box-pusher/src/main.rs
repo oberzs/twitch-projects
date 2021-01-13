@@ -42,6 +42,9 @@ fn main() -> Result<()> {
     world.add_sprite(&mut duku, "assets/wall.png")?;
     world.add_sprite(&mut duku, "assets/box.png")?;
 
+    // load sounds
+    world.add_sound("assets/slurp.mp3");
+
     // load level
     level::load(&mut world, "assets/world.ldtk", "Test")?;
 
@@ -53,8 +56,8 @@ fn main() -> Result<()> {
         let gamepad = gamepad_id.map(|g| gilrs.gamepad(g));
 
         movable_system(&world);
-        player_move_system(&world, events, &gamepad, tile_size);
-        collision_system(&world);
+        player_move_system(&mut world, events, &gamepad, tile_size);
+        collision_system(&mut world);
         player_animate_system(&world);
         animate_system(&world, duku.delta_time());
 

@@ -118,18 +118,27 @@ pub fn movable_system(world: &World) {
     }
 }
 
-pub fn collision_system(world: &World) {
-    let solids = world.read::<Solid>();
-    let positions = world.read::<Position>();
-    let mut movables = world.write::<Movable>();
+pub fn collision_system(world: &mut World) {
+    let mut bump = false;
 
-    for (pos, mov) in (&positions, &mut movables).join() {
-        // check solids
-        for (solid, _) in (&positions, &solids).join() {
-            if solid.pos == mov.target {
-                mov.target = pos.pos;
+    {
+        let solids = world.read::<Solid>();
+        let positions = world.read::<Position>();
+        let mut movables = world.write::<Movable>();
+
+        for (pos, mov) in (&positions, &mut movables).join() {
+            // check solids
+            for (solid, _) in (&positions, &solids).join() {
+                if solid.pos == mov.target {
+                    mov.target = pos.pos;
+                    bump = true;
+                }
             }
         }
+    }
+
+    if bump {
+        world.play_sound("slurp.mp3");
     }
 }
 
@@ -167,63 +176,71 @@ pub fn player_animate_system(world: &World) {
 }
 
 pub fn player_move_system(
-    world: &World,
+    world: &mut World,
     events: &Events,
     gamepad: &Option<Gamepad>,
     tile_size: u32,
 ) {
-    let players = world.read::<Player>();
-    let positions = world.read::<Position>();
-    let mut movables = world.write::<Movable>();
+    let mut bump = false;
 
-    let mut pushable = None;
-    let mut push_dir = Vec2::new(0.0, 0.0);
-
-    for (pos, mov, _) in (&positions, &mut movables, &players).join() {
-        if pos.pos == mov.target {
-            // reset player movement speed
-            mov.speed = 1.0;
-
-            // move target if player pressed key
-            // and change animation
-            if events.is_key_pressed(Key::W) || gamepad_pressed(gamepad, Button::DPadUp) {
-                mov.target.y += tile_size as f32;
-                mov.direction = Vec2::up();
-            } else if events.is_key_pressed(Key::S) || gamepad_pressed(gamepad, Button::DPadDown) {
-                mov.target.y -= tile_size as f32;
-                mov.direction = Vec2::down();
-            } else if events.is_key_pressed(Key::A) || gamepad_pressed(gamepad, Button::DPadLeft) {
-                mov.target.x -= tile_size as f32;
-                mov.direction = Vec2::left();
-            } else if events.is_key_pressed(Key::D) || gamepad_pressed(gamepad, Button::DPadRight) {
-                mov.target.x += tile_size as f32;
-                mov.direction = Vec2::right();
+    {
+        let players = world.read::<Player>();
+        let positions = world.read::<Position>();
+        let mut movables = world.write::<Movable>();
+        let mut pushable = None;
+        let mut push_dir = Vec2::new(0.0, 0.0);
+        for (pos, mov, _) in (&positions, &mut movables, &players).join() {
+            if pos.pos == mov.target {
+                // reset player movement speed
+                mov.speed = 1.0;
+                // move target if player pressed key
+                // and change animation
+                if events.is_key_pressed(Key::W) || gamepad_pressed(gamepad, Button::DPadUp) {
+                    mov.target.y += tile_size as f32;
+                    mov.direction = Vec2::up();
+                } else if events.is_key_pressed(Key::S)
+                    || gamepad_pressed(gamepad, Button::DPadDown)
+                {
+                    mov.target.y -= tile_size as f32;
+                    mov.direction = Vec2::down();
+                } else if events.is_key_pressed(Key::A)
+                    || gamepad_pressed(gamepad, Button::DPadLeft)
+                {
+                    mov.target.x -= tile_size as f32;
+                    mov.direction = Vec2::left();
+                } else if events.is_key_pressed(Key::D)
+                    || gamepad_pressed(gamepad, Button::DPadRight)
+                {
+                    mov.target.x += tile_size as f32;
+                    mov.direction = Vec2::right();
+                }
+                // get move direction and check for pushables
+                push_dir = mov.target - pos.pos;
+                pushable = check_position::<Pushable>(world, mov.target);
+                // change state to push if pushable ahead
+                if pushable.is_some() {
+                    mov.speed = 0.5;
+                }
+                // check the next tile to cancel movement
+                if pushable.is_some()
+                    && (check_position::<Solid>(world, mov.target + push_dir).is_some()
+                        || check_position::<Pushable>(world, mov.target + push_dir).is_some())
+                {
+                    pushable = None;
+                    mov.target = pos.pos;
+                    bump = true;
+                }
             }
-
-            // get move direction and check for pushables
-            push_dir = mov.target - pos.pos;
-            pushable = check_position::<Pushable>(world, mov.target);
-
-            // change state to push if pushable ahead
-            if pushable.is_some() {
-                mov.speed = 0.5;
-            }
-
-            // check the next tile to cancel movement
-            if pushable.is_some()
-                && (check_position::<Solid>(world, mov.target + push_dir).is_some()
-                    || check_position::<Pushable>(world, mov.target + push_dir).is_some())
-            {
-                pushable = None;
-                mov.target = pos.pos;
-            }
+        }
+        // if pushable ahead, move it
+        if let Some(push) = pushable {
+            let mov = movables.get_mut(push).expect("bad entity");
+            mov.target += push_dir;
         }
     }
 
-    // if pushable ahead, move it
-    if let Some(push) = pushable {
-        let mov = movables.get_mut(push).expect("bad entity");
-        mov.target += push_dir;
+    if bump {
+        world.play_sound("slurp.mp3");
     }
 }
 

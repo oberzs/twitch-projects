@@ -2,6 +2,8 @@ use duku::Duku;
 use duku::Handle;
 use duku::Texture;
 use duku::Vec2;
+use kira::manager::AudioManager;
+use kira::sound::SoundId;
 use specs::world::EntitiesRes;
 use specs::Builder;
 use specs::Component;
@@ -12,6 +14,7 @@ use specs::WorldExt;
 use specs::WriteStorage;
 use std::collections::HashMap;
 use std::path::Path;
+use std::time::Instant;
 
 use super::Result;
 use crate::components::Animation;
@@ -28,7 +31,11 @@ use crate::components::TileLayer;
 
 pub struct World {
     specs: SpecsWorld,
+    audio: AudioManager,
     sprites: HashMap<String, Handle<Texture>>,
+    sounds: HashMap<String, SoundId>,
+    sound_start: Instant,
+    sound_cooldown: f64,
 }
 
 impl World {
@@ -45,9 +52,19 @@ impl World {
         specs.register::<FloorLayer>();
         specs.register::<TileLayer>();
 
-        let sprites = HashMap::new();
+        let audio = AudioManager::new(Default::default()).expect("bad kira");
 
-        Ok(Self { specs, sprites })
+        let sprites = HashMap::new();
+        let sounds = HashMap::new();
+
+        Ok(Self {
+            sound_start: Instant::now(),
+            sound_cooldown: 0.0,
+            specs,
+            audio,
+            sprites,
+            sounds,
+        })
     }
 
     pub fn add_sprite(&mut self, duku: &mut Duku, path: impl AsRef<Path>) -> Result<()> {
@@ -59,6 +76,36 @@ impl World {
         let sprite = duku.create_texture_png(p, None)?;
         self.sprites.insert(name.to_string(), sprite);
         Ok(())
+    }
+
+    pub fn add_sound(&mut self, path: impl AsRef<Path>) {
+        let p = path.as_ref();
+        let name = p
+            .file_name()
+            .map(|n| n.to_str().unwrap_or(""))
+            .unwrap_or("");
+        let sound = self
+            .audio
+            .load_sound(p, Default::default())
+            .expect("bad sound");
+        self.sounds.insert(name.to_string(), sound);
+    }
+
+    pub fn play_sound(&mut self, name: &str) {
+        if self.sound_start.elapsed().as_secs_f64() > self.sound_cooldown {
+            let sound = self
+                .sounds
+                .get(name)
+                .expect("bad oliver, you did bad sound");
+
+            // set cooldown
+            self.sound_start = Instant::now();
+            self.sound_cooldown = sound.duration();
+
+            self.audio
+                .play(*sound, Default::default())
+                .expect("cannot play");
+        }
     }
 
     pub fn read<T: Component>(&self) -> ReadStorage<T> {
