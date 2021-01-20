@@ -4,14 +4,11 @@ use duku::Texture;
 use duku::Vec2;
 use kira::manager::AudioManager;
 use kira::sound::SoundId;
-use specs::world::EntitiesRes;
 use specs::Builder;
-use specs::Component;
-use specs::Read;
-use specs::ReadStorage;
+use specs::RunNow;
+use specs::System;
 use specs::World as SpecsWorld;
 use specs::WorldExt;
-use specs::WriteStorage;
 use std::collections::HashMap;
 use std::path::Path;
 use std::time::Instant;
@@ -19,15 +16,12 @@ use std::time::Instant;
 use super::Result;
 use crate::components::Animation;
 use crate::components::Animations;
-use crate::components::EntityLayer;
-use crate::components::FloorLayer;
+use crate::components::Immovable;
 use crate::components::Movable;
 use crate::components::Player;
 use crate::components::Position;
-use crate::components::Pushable;
-use crate::components::Solid;
 use crate::components::Sprite;
-use crate::components::TileLayer;
+use crate::resources::Inputs;
 
 pub struct World {
     specs: SpecsWorld,
@@ -41,16 +35,18 @@ pub struct World {
 impl World {
     pub fn new() -> Result<Self> {
         let mut specs = SpecsWorld::new();
+
+        // register components
         specs.register::<Sprite>();
         specs.register::<Position>();
         specs.register::<Player>();
-        specs.register::<Solid>();
         specs.register::<Movable>();
         specs.register::<Animations>();
-        specs.register::<Pushable>();
-        specs.register::<EntityLayer>();
-        specs.register::<FloorLayer>();
-        specs.register::<TileLayer>();
+        specs.register::<Movable>();
+        specs.register::<Immovable>();
+
+        // insert resources
+        specs.insert(Inputs::default());
 
         let audio = AudioManager::new(Default::default()).expect("bad kira");
 
@@ -65,6 +61,10 @@ impl World {
             sprites,
             sounds,
         })
+    }
+
+    pub fn run_system<'a>(&'a self, mut system: impl System<'a>) {
+        system.run_now(&self.specs);
     }
 
     pub fn add_sprite(&mut self, duku: &mut Duku, path: impl AsRef<Path>) -> Result<()> {
@@ -108,80 +108,79 @@ impl World {
         }
     }
 
-    pub fn read<T: Component>(&self) -> ReadStorage<T> {
-        self.specs.read_storage()
-    }
-
-    pub fn write<T: Component>(&self) -> WriteStorage<T> {
-        self.specs.write_storage()
-    }
-
-    pub fn entities(&self) -> Read<EntitiesRes> {
-        self.specs.entities()
-    }
-
-    pub fn spawn_wall(&mut self, sprite: &str, pos: Vec2, part_pos: Vec2, part_size: Vec2) {
+    pub fn spawn_wall(&mut self, sprite: &str, x: u32, y: u32, part_pos: Vec2, part_size: Vec2) {
         let texture = self.get_sprite(sprite);
 
         self.specs
             .create_entity()
-            .with(Position { pos })
+            .with(Position {
+                x,
+                y,
+                z: 1,
+                offset: Vec2::default(),
+                direction: Vec2::right(),
+            })
             .with(Sprite {
                 texture,
                 part_pos,
                 part_size,
             })
-            .with(TileLayer)
-            .with(Solid)
+            .with(Immovable)
             .build();
     }
 
-    pub fn spawn_floor(&mut self, sprite: &str, pos: Vec2, part_pos: Vec2, part_size: Vec2) {
+    pub fn spawn_floor(&mut self, sprite: &str, x: u32, y: u32, part_pos: Vec2, part_size: Vec2) {
         let texture = self.get_sprite(sprite);
 
         self.specs
             .create_entity()
-            .with(Position { pos })
+            .with(Position {
+                x,
+                y,
+                z: 2,
+                offset: Vec2::default(),
+                direction: Vec2::right(),
+            })
             .with(Sprite {
                 texture,
                 part_pos,
                 part_size,
             })
-            .with(FloorLayer)
             .build();
     }
 
-    pub fn spawn_box(&mut self, pos: Vec2) {
+    pub fn spawn_box(&mut self, x: u32, y: u32) {
         let texture = self.get_sprite("box.png");
 
         self.specs
             .create_entity()
-            .with(Position { pos })
-            .with(Movable {
-                target: pos,
-                direction: Vec2::down(),
-                speed: 0.5,
+            .with(Position {
+                x,
+                y,
+                z: 0,
+                offset: Vec2::default(),
+                direction: Vec2::right(),
             })
             .with(Sprite {
                 texture,
                 part_pos: Vec2::new(0.0, 0.0),
                 part_size: Vec2::new(16.0, 16.0),
             })
-            .with(Pushable)
-            .with(EntityLayer)
+            .with(Movable)
             .build();
     }
 
-    pub fn spawn_player(&mut self, pos: Vec2) {
+    pub fn spawn_player(&mut self, x: u32, y: u32) {
         let texture = self.get_sprite("player.png");
 
         self.specs
             .create_entity()
-            .with(Position { pos })
-            .with(Movable {
-                target: pos,
+            .with(Position {
+                x,
+                y,
+                z: 0,
+                offset: Vec2::default(),
                 direction: Vec2::down(),
-                speed: 1.0,
             })
             .with(Sprite {
                 texture,
@@ -232,7 +231,6 @@ impl World {
                 ),
             })
             .with(Player)
-            .with(EntityLayer)
             .build();
     }
 

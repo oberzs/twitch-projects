@@ -35,12 +35,13 @@ pub fn load(world: &mut World, path: impl AsRef<Path>, level_name: impl AsRef<st
     let layers = as_vec(&level["layerInstances"])?;
 
     // get level height
-    let level_height = as_i32(&level["pxHei"])?;
+    let level_height = as_u32(&level["pxHei"])?;
 
     // iterate over layers
     for layer_val in layers {
         let layer = as_map(layer_val)?;
         let layer_type = as_str(&layer["__type"])?;
+        let grid_size = as_u32(&layer["__gridSize"])?;
 
         // check if is tile or entity layer
         match layer_type {
@@ -54,14 +55,13 @@ pub fn load(world: &mut World, path: impl AsRef<Path>, level_name: impl AsRef<st
 
                     // get position
                     let xy = as_vec(&instance["px"])?;
-                    let x = as_i32(xy.get(0).ok_or("no x")?)?;
-                    let y = level_height - as_i32(xy.get(1).ok_or("no y")?)?;
-                    let pos = Vec2::new(x as f32, y as f32);
+                    let x = as_u32(xy.get(0).ok_or("no x")?)? / grid_size;
+                    let y = (level_height - as_u32(xy.get(1).ok_or("no y")?)?) / grid_size;
 
                     // spawn entity
                     match identifier {
-                        "Player" => world.spawn_player(pos),
-                        "Box" => world.spawn_box(pos),
+                        "Player" => world.spawn_player(x, y),
+                        "Box" => world.spawn_box(x, y),
                         _ => {}
                     }
                 }
@@ -77,7 +77,7 @@ pub fn load(world: &mut World, path: impl AsRef<Path>, level_name: impl AsRef<st
                 let tiles = as_vec(&layer["gridTiles"])?;
 
                 // get grid size
-                let grid_size = as_i32(&layer["__gridSize"])?;
+                let grid_size = as_u32(&layer["__gridSize"])?;
 
                 for tile_val in tiles {
                     let tile = as_map(tile_val)?;
@@ -85,18 +85,17 @@ pub fn load(world: &mut World, path: impl AsRef<Path>, level_name: impl AsRef<st
                     // get coordinates
                     let xy = as_vec(&tile["px"])?;
                     let uv = as_vec(&tile["src"])?;
-                    let x = as_i32(xy.get(0).ok_or("no x")?)?;
-                    let y = level_height - as_i32(xy.get(1).ok_or("no y")?)?;
+                    let x = as_u32(xy.get(0).ok_or("no x")?)? / grid_size;
+                    let y = (level_height - as_u32(xy.get(1).ok_or("no y")?)?) / grid_size;
                     let u = as_i32(uv.get(0).ok_or("no u")?)?;
                     let v = as_i32(uv.get(1).ok_or("no v")?)?;
 
-                    let pos = Vec2::new(x as f32, y as f32);
                     let part_pos = Vec2::new(u as f32, v as f32);
                     let part_size = Vec2::new(grid_size as f32, grid_size as f32);
 
                     match identifier {
-                        "Collisions" => world.spawn_wall(tex_name, pos, part_pos, part_size),
-                        "Background" => world.spawn_floor(tex_name, pos, part_pos, part_size),
+                        "Collisions" => world.spawn_wall(tex_name, x, y, part_pos, part_size),
+                        "Background" => world.spawn_floor(tex_name, x, y, part_pos, part_size),
                         _ => {}
                     }
                 }
@@ -106,6 +105,16 @@ pub fn load(world: &mut World, path: impl AsRef<Path>, level_name: impl AsRef<st
     }
 
     Ok(())
+}
+
+fn as_u32(value: &Value) -> Result<u32> {
+    match value {
+        Value::Number(n) => {
+            let i = n.as_i64().ok_or("invalid u32")?;
+            Ok(i as u32)
+        }
+        _ => Err("invalid u32".into()),
+    }
 }
 
 fn as_i32(value: &Value) -> Result<i32> {

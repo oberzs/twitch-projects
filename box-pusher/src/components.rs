@@ -28,30 +28,18 @@ pub struct Animation {
 
 #[derive(Component)]
 pub struct Position {
-    pub pos: Vec2,
-}
-
-#[derive(Component)]
-pub struct Movable {
-    pub target: Vec2,
+    pub x: u32,
+    pub y: u32,
+    pub z: u32,
+    pub offset: Vec2,
     pub direction: Vec2,
-    pub speed: f32,
 }
 
 #[derive(Component)]
 pub struct Player;
 
 #[derive(Component)]
-pub struct Solid;
+pub struct Movable;
 
 #[derive(Component)]
-pub struct Pushable;
-
-#[derive(Component)]
-pub struct FloorLayer;
-
-#[derive(Component)]
-pub struct TileLayer;
-
-#[derive(Component)]
-pub struct EntityLayer;
+pub struct Immovable;
