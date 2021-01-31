@@ -28,11 +28,19 @@ pub struct Animation {
 
 #[derive(Component)]
 pub struct Position {
-    pub x: u32,
-    pub y: u32,
+    pub x: i32,
+    pub y: i32,
     pub z: u32,
     pub offset: Vec2,
-    pub direction: Vec2,
+    pub direction: Direction,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 #[derive(Component)]

@@ -5,6 +5,7 @@ use specs::System;
 use specs::WriteStorage;
 
 use crate::components::Animations;
+use crate::components::Direction;
 use crate::components::Player;
 use crate::components::Position;
 use crate::components::Sprite;
@@ -29,19 +30,17 @@ impl<'s> System<'s> for AnimateSystem {
             let prev_animation = ani.current_animation.clone();
             if pos.offset != Vec2::default() {
                 ani.current_animation = match pos.direction {
-                    Vec2 { x, .. } if x as i32 == 1 => "walk-right".to_string(),
-                    Vec2 { x, .. } if x as i32 == -1 => "walk-left".to_string(),
-                    Vec2 { y, .. } if y as i32 == 1 => "walk-up".to_string(),
-                    Vec2 { y, .. } if y as i32 == -1 => "walk-down".to_string(),
-                    _ => unreachable!(),
+                    Direction::Right => "walk-right".to_string(),
+                    Direction::Left => "walk-left".to_string(),
+                    Direction::Up => "walk-up".to_string(),
+                    Direction::Down => "walk-down".to_string(),
                 };
             } else {
                 ani.current_animation = match pos.direction {
-                    Vec2 { x, .. } if x as i32 == 1 => "idle-right".to_string(),
-                    Vec2 { x, .. } if x as i32 == -1 => "idle-left".to_string(),
-                    Vec2 { y, .. } if y as i32 == 1 => "idle-up".to_string(),
-                    Vec2 { y, .. } if y as i32 == -1 => "idle-down".to_string(),
-                    _ => unreachable!(),
+                    Direction::Right => "idle-right".to_string(),
+                    Direction::Left => "idle-left".to_string(),
+                    Direction::Up => "idle-up".to_string(),
+                    Direction::Down => "idle-down".to_string(),
                 };
             }
             if prev_animation != ani.current_animation {

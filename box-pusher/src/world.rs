@@ -16,6 +16,7 @@ use std::time::Instant;
 use super::Result;
 use crate::components::Animation;
 use crate::components::Animations;
+use crate::components::Direction;
 use crate::components::Immovable;
 use crate::components::Movable;
 use crate::components::Player;
@@ -108,7 +109,7 @@ impl World {
         }
     }
 
-    pub fn spawn_wall(&mut self, sprite: &str, x: u32, y: u32, part_pos: Vec2, part_size: Vec2) {
+    pub fn spawn_wall(&mut self, sprite: &str, x: i32, y: i32, part_pos: Vec2, part_size: Vec2) {
         let texture = self.get_sprite(sprite);
 
         self.specs
@@ -116,9 +117,9 @@ impl World {
             .with(Position {
                 x,
                 y,
-                z: 1,
+                z: 2,
                 offset: Vec2::default(),
-                direction: Vec2::right(),
+                direction: Direction::Right,
             })
             .with(Sprite {
                 texture,
@@ -129,7 +130,7 @@ impl World {
             .build();
     }
 
-    pub fn spawn_floor(&mut self, sprite: &str, x: u32, y: u32, part_pos: Vec2, part_size: Vec2) {
+    pub fn spawn_floor(&mut self, sprite: &str, x: i32, y: i32, part_pos: Vec2, part_size: Vec2) {
         let texture = self.get_sprite(sprite);
 
         self.specs
@@ -137,9 +138,9 @@ impl World {
             .with(Position {
                 x,
                 y,
-                z: 2,
+                z: 3,
                 offset: Vec2::default(),
-                direction: Vec2::right(),
+                direction: Direction::Right,
             })
             .with(Sprite {
                 texture,
@@ -149,7 +150,7 @@ impl World {
             .build();
     }
 
-    pub fn spawn_box(&mut self, x: u32, y: u32) {
+    pub fn spawn_box(&mut self, x: i32, y: i32) {
         let texture = self.get_sprite("box.png");
 
         self.specs
@@ -157,9 +158,9 @@ impl World {
             .with(Position {
                 x,
                 y,
-                z: 0,
+                z: 1,
                 offset: Vec2::default(),
-                direction: Vec2::right(),
+                direction: Direction::Right,
             })
             .with(Sprite {
                 texture,
@@ -170,7 +171,7 @@ impl World {
             .build();
     }
 
-    pub fn spawn_player(&mut self, x: u32, y: u32) {
+    pub fn spawn_player(&mut self, x: i32, y: i32) {
         let texture = self.get_sprite("player.png");
 
         self.specs
@@ -178,9 +179,9 @@ impl World {
             .with(Position {
                 x,
                 y,
-                z: 0,
+                z: 1,
                 offset: Vec2::default(),
-                direction: Vec2::down(),
+                direction: Direction::Down,
             })
             .with(Sprite {
                 texture,
