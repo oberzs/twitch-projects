@@ -7,8 +7,11 @@ mod resources;
 mod systems;
 mod world;
 
-use duku::Camera;
+use duku::glsl::Metadata;
 use duku::Duku;
+use duku::Filter;
+use duku::Rgb;
+use duku::Wrap;
 use gilrs::Gilrs;
 
 use error::Result;
@@ -22,13 +25,28 @@ fn main() -> Result<()> {
     let tile_size = 16;
     let view_width = tile_size * 10;
     let view_height = tile_size * 9;
-    let window_width = view_width * 4;
-    let window_height = view_height * 4;
+    let window_width = view_width * 5;
+    let window_height = view_height * 5;
 
-    let (mut duku, window) = Duku::windowed(window_width, window_height)?;
+    let (mut duku, window) = Duku::windowed(window_width, window_height);
     let mut gilrs = Gilrs::new().expect("bad gilrs");
 
-    let camera = Camera::orthographic_sized(view_width as f32, view_height as f32);
+    let shader_path = "assets/crt.glsl";
+    let mut crt_shader = duku.create_shader_glsl(shader_path)?;
+    let mut meta = Metadata::new(shader_path)?;
+    let canvas = duku.create_canvas(view_width, view_height);
+    let material = duku.create_material();
+
+    // set up material
+    {
+        let mut m = material.write();
+        m.a.x = canvas.read().shader_index(0).expect("no texture") as f32;
+        m.b.x = 6.0;
+        m.b.y = 6.0;
+        m.c.x = 0.5;
+        m.d.x = view_width as f32;
+        m.d.y = view_height as f32;
+    }
 
     let mut world = World::new()?;
 
@@ -45,6 +63,13 @@ fn main() -> Result<()> {
     level::load(&mut world, "assets/world.ldtk", "Test")?;
 
     window.while_open(move |events| {
+        if meta.is_modified() {
+            match duku.create_shader_glsl(shader_path) {
+                Ok(shader) => crt_shader = shader,
+                Err(err) => println!("{}", err),
+            }
+        }
+
         world.run_system(InputSystem {
             gilrs: &mut gilrs,
             events,
@@ -56,7 +81,10 @@ fn main() -> Result<()> {
             delta_time: duku.delta_time(),
         });
 
-        duku.draw(Some(&camera), |t| {
+        duku.begin();
+
+        duku.draw_on_canvas(&canvas, None, |t| {
+            t.background(Rgb::clear());
             world.run_system(DrawSystem {
                 target: t,
                 view_width,
@@ -64,6 +92,16 @@ fn main() -> Result<()> {
                 tile_size,
             });
         });
+
+        duku.draw(None, |t| {
+            t.background("#000000");
+            t.filter(Filter::Nearest);
+            t.wrap(Wrap::ClampBorder);
+            t.material(&material);
+            t.surface(&crt_shader);
+        });
+
+        duku.end();
     });
 
     Ok(())

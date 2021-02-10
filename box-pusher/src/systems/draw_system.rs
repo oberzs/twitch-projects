@@ -45,7 +45,5 @@ impl<'t> System<'t> for DrawSystem<'t> {
             );
             self.target.pop();
         }
-
-        self.target.text("Giuseppe", [50.0, 50.0]);
     }
 }

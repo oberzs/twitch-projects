@@ -5,7 +5,7 @@ authors = ["Oliver Berzs <oliver.berzs@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-duku = { version = "0.2.1", features = ["png"] }
+duku = { path = "../../duku", features = ["png", "glsl"] }
 specs = { version = "0.16.1", default-features = false }
 kira = "0.3.0"
 gilrs = "0.8.0"
